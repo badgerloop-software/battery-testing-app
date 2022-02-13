@@ -7,7 +7,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    serial = new Serial("/dev/cu.usbserial-110");
+    serial = new Serial("/dev/cu.usbserial-2110");
 
 }
 
@@ -28,4 +28,8 @@ void MainWindow::on_startButton_pressed() {
     }
     std::string toSend = "StartTest,"+ui->batteryID->text().toStdString()+','+ui->testerID->text().toStdString()+','+ui->current->text().toStdString();
     serial->send(toSend.c_str());
+    while(1){
+        std::cout<<"112";
+    }
 }
+

@@ -28,3 +28,4 @@ private:
     Serial *serial;
 };
 #endif // MAINWINDOW_H
+

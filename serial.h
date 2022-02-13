@@ -7,16 +7,21 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <QCoreApplication>
+#include <iostream>
+#include <QSerialPort>
+#include <QDebug>
 
 class Serial {
 public:
     Serial(const char* portName);
-    void send(const char* Message);
-    void read(); //Still under construction..
+    void send(QByteArray Message);
+    QByteArray read();
 private:
     FILE *port;
     const char* portName;
+    QSerialPort serial;
 };
 
-
 #endif //SERIAL_SERIAL_H
+
