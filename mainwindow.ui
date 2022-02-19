@@ -114,9 +114,9 @@ Current(A)</string>
     <property name="geometry">
      <rect>
       <x>370</x>
-      <y>250</y>
-      <width>131</width>
-      <height>24</height>
+      <y>253</y>
+      <width>181</width>
+      <height>21</height>
      </rect>
     </property>
    </widget>

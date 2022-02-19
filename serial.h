@@ -11,14 +11,28 @@
 #include <iostream>
 #include <QSerialPort>
 #include <QDebug>
+#include <unistd.h>
 
-class Serial {
+class Serial :public QObject{
+    Q_OBJECT
 public:
     Serial(const char* portName);
+    Serial();
+    void open(const char* portName);
+    void sendMessage(QByteArray message);
+    bool terminate=0;
+    void start();
+    QByteArray getData();
+
+private:
     void send(QByteArray Message);
     QByteArray read();
-private:
-    FILE *port;
+    bool newMessage=0;
+    QByteArray toSend=NULL;
+
+    void threadProcedure();
+    QByteArray buffer;
+    std::thread *t;
     const char* portName;
     QSerialPort serial;
 };

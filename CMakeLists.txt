@@ -22,6 +22,10 @@ set(PROJECT_SOURCES
         mainwindow.ui
         serial.h
         serial.cpp
+        serialhub.h
+        serialhub.cpp
+        csvwriter.h
+        csvwriter.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

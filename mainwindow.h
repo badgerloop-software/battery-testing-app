@@ -6,7 +6,8 @@
 #include <iostream>
 #include <QDebug>
 #include <string>
-#include <serial.h>
+#include <serialhub.h>
+#include <QSerialPortInfo>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -22,10 +23,13 @@ public:
 
 public slots:
     void on_startButton_pressed();
+    void indexChanged(int index);
 private:
+    void init_combobox();
     Ui::MainWindow *ui;
+
     bool connected=0;
-    Serial *serial;
+    SerialHub *serial;
 };
 #endif // MAINWINDOW_H
 
