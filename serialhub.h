@@ -17,16 +17,13 @@ struct deviceInfo{
     int discharge_current;
 };
 
-class SerialHub {
+class SerialHub{
 public:
     SerialHub();
     void deploy(const char* port, const char* testerID, const char* deviceID, int current);
     void procedure();
 private:
-
-
-    std::thread t;
-    std::vector<Serial *> devices;
+    std::vector<SerialThread*> devices;
     std::vector<deviceInfo> deviceList;
 };
 

@@ -32,16 +32,17 @@ void MainWindow::on_startButton_pressed() {
     std::string batteryID=ui->batteryID->text().toStdString(),
             testerID=ui->testerID->text().toStdString(),
             current=ui->current->text().toStdString();
-    serial->deploy("/dev/cu.usbseria;l-2110","123","312",123);
     if(batteryID=="" || testerID=="" || current==""){
         QMessageBox msgbox;
         msgbox.setText("Please fill in all data");
         msgbox.exec();
         return;
     }
-    std::string toSend = "StartTest,"+ui->batteryID->text().toStdString()+','+ui->testerID->text().toStdString()+','+ui->current->text().toStdString();
-    while(1){
-        serial->procedure();
+    SerialHub serial;
+    serial.deploy("/dev/cu.usbserial-2110","123","321",123);
+    for(;;) {
+        serial.procedure();
+
         qApp->processEvents();
     }
 }

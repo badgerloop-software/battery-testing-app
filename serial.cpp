@@ -34,7 +34,7 @@ void Serial::open(const char* portName) {
  * @brief Serial::sendMessage notify the thread by changing the bool value to send message
  * @param message
  */
-void Serial::sendMessage(QByteArray message) {
+void SerialThread::sendMessage(QByteArray message) {
     //qDebug()<<"set";
     newMessage=1;
     toSend = message;
@@ -57,14 +57,17 @@ QByteArray Serial::read() {
 /**
  * @brief Serial::threadProcedure get data recieved from the serial port and put into buffer for access through getdata()
  */
-void Serial::threadProcedure() {
+
+
+void SerialThread::run() {
+    Serial serial(portName);
     for(;;){
             if(newMessage) {
                 //qDebug()<<"send";
-                send(toSend);
+                serial.send(toSend);
                 newMessage =0;
             }
-            QByteArray recieve=read();
+            QByteArray recieve=serial.read();
             if(recieve=="end") {
                 terminate = 1;
                 return;
@@ -74,16 +77,11 @@ void Serial::threadProcedure() {
         }
 }
 
-void Serial::start() {
-    t=new std::thread(&Serial::threadProcedure,this);
-    t->detach();
-}
-
 /**
  * @brief Serial::getData returns the buffered data and clear the buffer
  * @return
  */
-QByteArray Serial::getData() {
+QByteArray SerialThread::getData() {
     QByteArray tmp= buffer;
     buffer.clear();
     return tmp;
