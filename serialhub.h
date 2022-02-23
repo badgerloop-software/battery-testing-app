@@ -22,6 +22,7 @@ public:
     SerialHub();
     void deploy(const char* port, const char* testerID, const char* deviceID, int current);
     void procedure();
+    deviceInfo getDeviceConfig(const char* port);
 private:
     std::vector<SerialThread*> devices;
     std::vector<deviceInfo> deviceList;

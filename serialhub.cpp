@@ -20,7 +20,7 @@ void SerialHub::deploy(const char* port,
     device.deviceID=deviceID;
     deviceList.push_back(device);
 
-    devices.push_back(new SerialThread("/dev/cu.usbserial-2110"));
+    devices.push_back(new SerialThread(port));
 
     std::string toSend="StartTest,";
     toSend+=testerID;
@@ -28,21 +28,25 @@ void SerialHub::deploy(const char* port,
     toSend+=deviceID;
     toSend+=",";
     toSend+=current;
-    devices[devices.size()-1]->sendMessage("startTest,123,321,123");
     devices[devices.size()-1]->start();
-
-    //qDebug()<<devices[0]->getData();
-    //devices[0]->sendMessage("lll");
 }
 
+deviceInfo SerialHub::getDeviceConfig(const char *port) {
+    for(int i = 0 ; i < deviceList.size() ; i++){
+        if(deviceList[i].devicePort==port) {
+            return deviceList[i];
+        }
+    }
+    return deviceInfo();
+}
 /**
  * @brief SerialHub::procedure procedure to run the program
  */
 void SerialHub::procedure() {
-    devices[devices.size()-1]->sendMessage("startTest,123,321,123");
-    QByteArray bytes=devices[0]->getData();
+    //devices[devices.size()-1]->sendMessage("startTest,123,321,123");
+    /*QByteArray bytes=devices[0]->getData();
     if(bytes!="")
-        qDebug()<<bytes;
+        qDebug()<<bytes;*/
 }
 
 

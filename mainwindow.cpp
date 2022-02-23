@@ -39,11 +39,8 @@ void MainWindow::on_startButton_pressed() {
         return;
     }
     SerialHub serial;
-    serial.deploy("/dev/cu.usbserial-2110","123","321",123);
-    for(;;) {
-        serial.procedure();
-
-        qApp->processEvents();
-    }
+    std::string port="/dev/";
+    port += ui->comboBox->currentText().toStdString();
+    serial.deploy(port.c_str(),testerID.c_str(),batteryID.c_str(),std::stoi(current));
 }
 

@@ -29,14 +29,10 @@ class SerialThread : public QThread {
 public:
     SerialThread(const char* portName) {this->portName=portName;};
     QByteArray getData();
-    void sendMessage(QByteArray message);
     bool terminate=0;
 private:
     const char* portName;
     void run() override;
-    bool newMessage=0;
-    QByteArray buffer;
-    QByteArray toSend=NULL;
 };
 
 #endif //SERIAL_SERIAL_H

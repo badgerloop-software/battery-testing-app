@@ -27,21 +27,26 @@ int main(int argc, char *argv[]) {
     return a.exec();
 }
 
+*/
 
-
-#include "serial.h"
-#include "serialhubq.h"
+/*#include "serial.h"
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
-    SerialThread serial("/dev/cu.usbserial-2110");
-    serial.start();
+    Serial serial("/dev/cu.usbserial-2110");
+    //serial.start();
+    serial.send("123");
+    serial.send("123");
+    serial.send("123");
+    serial.send("123");
+    serial.send("123");
+
     for(int i = 0;; i ++){
         QByteArray toSend;
         toSend.setNum(i);
-        serial.sendMessage(toSend);
-        qDebug()<<serial.getData();
-        usleep(3000000);
+
+        qDebug()<<serial.read();
+        //usleep(3000000);
     }
 }
 */
