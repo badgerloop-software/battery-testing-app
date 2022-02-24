@@ -55,16 +55,21 @@ QByteArray Serial::read() {
 
 void SerialThread::run() {
 
-    Serial serial(portName);
-    serial.send("123");
-    serial.send("123");
-    serial.send("123");
-    serial.send("123");
-    serial.send("123");
+    Serial serial(portName.c_str());
+    serial.send(message.c_str());
+    serial.send(message.c_str());
+    serial.send(message.c_str());
+    serial.send(message.c_str());
+    serial.send(message.c_str());
+    /*serial.send("abc");
+    serial.send("abc");
+    serial.send("abc");
+    serial.send("abc");
+    serial.send("abc");*/
     for(;;){
             QByteArray receive=serial.read();
             if(receive=="end"){
-                terminate = 1;
+                //emit ThreadTerminate();
                 return;
             }
 

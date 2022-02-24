@@ -11,16 +11,24 @@
 
 struct deviceInfo{
     deviceInfo(){}
-    const char* devicePort;
-    const char* testerID;
-    const char* deviceID;
+    deviceInfo(std::string port,
+               std::string testerID,
+               std::string batteryID, int current){
+        this->devicePort=port;
+        this->testerID=testerID;
+        this->batteryID=batteryID;
+        this->discharge_current = current;
+    }
+    std::string devicePort;
+    std::string testerID;
+    std::string batteryID;
     int discharge_current;
 };
 
 class SerialHub{
 public:
     SerialHub();
-    void deploy(const char* port, const char* testerID, const char* deviceID, int current);
+    void deploy(const char* port, const char* testerID, const char* batteryID, int current);
     void procedure();
     deviceInfo getDeviceConfig(const char* port);
 private:

@@ -27,11 +27,14 @@ private:
 
 class SerialThread : public QThread {
 public:
-    SerialThread(const char* portName) {this->portName=portName;};
+    SerialThread(const char* portName,const char* message) {this->portName=portName;
+                                                           this->message=message;}
     QByteArray getData();
-    bool terminate=0;
+signals:
+    void ThreadTerminate();
 private:
-    const char* portName;
+    std::string message;
+    std::string portName;
     void run() override;
 };
 

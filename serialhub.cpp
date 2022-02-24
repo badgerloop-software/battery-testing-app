@@ -13,21 +13,22 @@ SerialHub::SerialHub() {
  */
 void SerialHub::deploy(const char* port,
                               const char* testerID,
-                              const char* deviceID, int current){
+                              const char* batteryID, int current){
 
-    deviceInfo device;
+    /*deviceInfo device;
     device.devicePort=port;
-    device.deviceID=deviceID;
-    deviceList.push_back(device);
+    device.batteryID=batteryID;*/
+    deviceList.push_back(deviceInfo(port,testerID, batteryID, current));
 
-    devices.push_back(new SerialThread(port));
+
 
     std::string toSend="StartTest,";
     toSend+=testerID;
     toSend+=",";
-    toSend+=deviceID;
+    toSend+=batteryID;
     toSend+=",";
     toSend+=current;
+    devices.push_back(new SerialThread(port,toSend.c_str()));
     devices[devices.size()-1]->start();
 }
 
@@ -37,7 +38,11 @@ deviceInfo SerialHub::getDeviceConfig(const char *port) {
             return deviceList[i];
         }
     }
-    return deviceInfo();
+    deviceInfo device;
+    device.batteryID="DNE";
+    device.testerID="";
+    device.discharge_current=0;
+    return device;
 }
 /**
  * @brief SerialHub::procedure procedure to run the program

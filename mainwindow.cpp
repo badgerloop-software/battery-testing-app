@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent)
     init_combobox();
     connect(ui->comboBox, SIGNAL(currentIndexChanged(int)),
                 this, SLOT(indexChanged(int)));
+    serial= new SerialHub();
 }
 
 MainWindow::~MainWindow()
@@ -25,7 +26,20 @@ void MainWindow::init_combobox(){
 }
 
 void MainWindow::indexChanged(int index) {
-    qDebug()<<ui->comboBox->currentText();
+    std::string selected ="/dev/";
+    selected += ui->comboBox->currentText().toStdString();
+    deviceInfo device = serial->getDeviceConfig(selected.c_str());
+    if(device.batteryID=="DNE") {
+        ui->batteryID->setText("");
+        ui->current->setText("");
+        ui->testerID->setText("");
+        ui->startButton->setText("Start");
+    } else {
+        ui->batteryID->setText(device.batteryID.c_str());
+        ui->current->setText(std::to_string(device.discharge_current).c_str());
+        ui->testerID->setText(device.testerID.c_str());
+        ui->startButton->setText("Running...");
+    }
 }
 
 void MainWindow::on_startButton_pressed() {
@@ -38,9 +52,9 @@ void MainWindow::on_startButton_pressed() {
         msgbox.exec();
         return;
     }
-    SerialHub serial;
     std::string port="/dev/";
     port += ui->comboBox->currentText().toStdString();
-    serial.deploy(port.c_str(),testerID.c_str(),batteryID.c_str(),std::stoi(current));
+    serial->deploy(port.c_str(),testerID.c_str(),batteryID.c_str(),std::stoi(current));
+    ui->startButton->setText("Running...");
 }
 
