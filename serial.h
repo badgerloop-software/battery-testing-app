@@ -5,6 +5,7 @@
 #ifndef SERIAL_SERIAL_H
 #define SERIAL_SERIAL_H
 
+#include "csvwriter.h"
 #include <stdio.h>
 #include <string.h>
 #include <QCoreApplication>
@@ -26,15 +27,19 @@ private:
 
 
 class SerialThread : public QThread {
+    Q_OBJECT
 public:
-    SerialThread(const char* portName,const char* message) {this->portName=portName;
-                                                           this->message=message;}
+    SerialThread(const char* portName,const char* message, const char * fileName) {this->portName=portName;
+                                                           this->message=message;
+                                                            this->fileName=fileName;}
     QByteArray getData();
+    bool terminate=0;
 signals:
     void ThreadTerminate();
 private:
     std::string message;
     std::string portName;
+    std::string fileName;
     void run() override;
 };
 

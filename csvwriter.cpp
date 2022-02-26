@@ -15,4 +15,3 @@ void CSVWriter::write(const char *data) {
     fout<<data;
     fout.flush();
 }
-

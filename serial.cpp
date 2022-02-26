@@ -54,7 +54,8 @@ QByteArray Serial::read() {
 
 
 void SerialThread::run() {
-
+    CSVWriter csv(fileName.c_str());
+    csv.write("header");
     Serial serial(portName.c_str());
     serial.send(message.c_str());
     serial.send(message.c_str());
@@ -69,11 +70,13 @@ void SerialThread::run() {
     for(;;){
             QByteArray receive=serial.read();
             if(receive=="end"){
-                //emit ThreadTerminate();
+                terminate=1;
+                emit ThreadTerminate();
                 return;
             }
 
             //do stuff here
             qDebug()<<receive;
+            csv.write(receive);
     }
 }
