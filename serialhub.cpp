@@ -28,8 +28,10 @@ void SerialHub::deploy(const char* port,
     toSend+=batteryID;
     toSend+=",";
     toSend+=current;
-    devices.push_back(new SerialThread(port,toSend.c_str()));
+    devices.push_back(new SerialThread(port,toSend.c_str(),batteryID));
     devices[devices.size()-1]->start();
+    QObject::connect(&*devices[devices.size()-1],&SerialThread::ThreadTerminate
+            ,this,&SerialHub::on_ThreadTerminate);
 }
 
 deviceInfo SerialHub::getDeviceConfig(const char *port) {
@@ -44,15 +46,14 @@ deviceInfo SerialHub::getDeviceConfig(const char *port) {
     device.discharge_current=0;
     return device;
 }
-/**
- * @brief SerialHub::procedure procedure to run the program
- */
-void SerialHub::procedure() {
-    //devices[devices.size()-1]->sendMessage("startTest,123,321,123");
-    /*QByteArray bytes=devices[0]->getData();
-    if(bytes!="")
-        qDebug()<<bytes;*/
-}
 
+void SerialHub::on_ThreadTerminate(){
+    for (int i = 0 ; i < devices.size() ; i++){
+        if(devices[i]->terminate){
+            devices.erase(devices.begin()+i);
+            deviceList.erase(deviceList.begin()+i);
+        }
+    }
+}
 
 

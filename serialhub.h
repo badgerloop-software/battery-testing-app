@@ -25,12 +25,15 @@ struct deviceInfo{
     int discharge_current;
 };
 
-class SerialHub{
+class SerialHub : public QObject{
+    Q_OBJECT
 public:
     SerialHub();
     void deploy(const char* port, const char* testerID, const char* batteryID, int current);
     void procedure();
     deviceInfo getDeviceConfig(const char* port);
+public slots:
+    void on_ThreadTerminate();
 private:
     std::vector<SerialThread*> devices;
     std::vector<deviceInfo> deviceList;
