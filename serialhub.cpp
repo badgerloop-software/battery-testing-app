@@ -2,6 +2,14 @@
 
 SerialHub::SerialHub() {
 
+    for(QSerialPortInfo port: QSerialPortInfo::availablePorts()){
+        Serial serial(("/dev/"+port.portName().toStdString()).c_str());
+        serial.send("tester?\n");
+        if(serial.read().contains("yes")){
+            deviceList.push_back(deviceInfo(("/dev/"+port.portName().toStdString()).c_str(),"","",0));
+            qDebug()<<port.portName();
+        }
+    }
 }
 
 /**
@@ -22,7 +30,7 @@ void SerialHub::deploy(const char* port,
 
 
 
-    std::string toSend="StartTest,";
+    std::string toSend="starttest,";
     toSend+=testerID;
     toSend+=",";
     toSend+=batteryID;

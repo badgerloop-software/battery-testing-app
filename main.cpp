@@ -1,12 +1,18 @@
 //this for the ui
 #include "mainwindow.h"
 #include <QApplication>
+#include <QSplashScreen>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    QPixmap pixmap("Initializing.png");
+    QSplashScreen splash(pixmap);
+    splash.show();
+    a.processEvents();
     MainWindow w;
     w.show();
+    splash.finish(&w);
     return a.exec();
 }
 
@@ -33,20 +39,8 @@ int main(int argc, char *argv[]) {
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
-    Serial serial("/dev/cu.usbserial-2110");
-    //serial.start();
-    serial.send("123");
-    serial.send("123");
-    serial.send("123");
-    serial.send("123");
-    serial.send("123");
+    Serial serial("/dev/cu.usbserial-1130");
+    serial.send("tester?\n");
+    qDebug()<<serial.read();
+}*/
 
-    for(int i = 0;; i ++){
-        QByteArray toSend;
-        toSend.setNum(i);
-
-        qDebug()<<serial.read();
-        //usleep(3000000);
-    }
-}
-*/

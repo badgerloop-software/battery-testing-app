@@ -7,7 +7,7 @@
 #include <thread>
 #include <algorithm>
 #include <unistd.h>
-
+#include <QSerialPortInfo>
 
 struct deviceInfo{
     deviceInfo(){}
@@ -30,7 +30,6 @@ class SerialHub : public QObject{
 public:
     SerialHub();
     void deploy(const char* port, const char* testerID, const char* batteryID, int current);
-    void procedure();
     deviceInfo getDeviceConfig(const char* port);
 public slots:
     void on_ThreadTerminate();

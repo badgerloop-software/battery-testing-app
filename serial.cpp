@@ -17,6 +17,7 @@ Serial::Serial(const char* portName) {
     serial.setStopBits(QSerialPort::OneStop);
     serial.setFlowControl(QSerialPort::NoFlowControl);
     while(!serial.isOpen()) serial.open(QIODevice::ReadWrite);
+    usleep(1500000);
 }
 
 void Serial::open(const char* portName) {
@@ -28,6 +29,7 @@ void Serial::open(const char* portName) {
     serial.setStopBits(QSerialPort::OneStop);
     serial.setFlowControl(QSerialPort::NoFlowControl);
     while(!serial.isOpen()) serial.open(QIODevice::ReadWrite);
+    usleep(1500000);
 }
 
 /**
@@ -55,13 +57,13 @@ QByteArray Serial::read() {
 
 void SerialThread::run() {
     CSVWriter csv(fileName.c_str());
-    csv.write("header");
+    csv.write("header\n");
     Serial serial(portName.c_str());
     serial.send(message.c_str());
     serial.send(message.c_str());
     serial.send(message.c_str());
     serial.send(message.c_str());
-    serial.send(message.c_str());
+    //serial.send(message.c_str());
     /*serial.send("abc");
     serial.send("abc");
     serial.send("abc");
@@ -69,7 +71,7 @@ void SerialThread::run() {
     serial.send("abc");*/
     for(;;){
             QByteArray receive=serial.read();
-            if(receive=="end"){
+            if(receive=="end\r\n" || receive.contains("error")){
                 terminate=1;
                 emit ThreadTerminate();
                 return;
