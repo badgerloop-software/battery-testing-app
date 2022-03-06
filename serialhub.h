@@ -23,6 +23,8 @@ struct deviceInfo{
     std::string testerID;
     std::string batteryID;
     int discharge_current;
+    bool running=0;
+    bool batReady;
 };
 
 class SerialHub : public QObject{
@@ -30,10 +32,15 @@ class SerialHub : public QObject{
 public:
     SerialHub();
     void deploy(const char* port, const char* testerID, const char* batteryID, int current);
-    deviceInfo getDeviceConfig(const char* port);
+    deviceInfo getDeviceConfig(std::string testerID);
+    std::vector<deviceInfo> getDevices(){return deviceList;};
 public slots:
-    void on_ThreadTerminate();
+    void on_batteryStatusChange();
+    void on_threadTerminate();
+signals:
+    void statusChange();
 private:
+    int getIndex(std::string testerID);
     std::vector<SerialThread*> devices;
     std::vector<deviceInfo> deviceList;
 };

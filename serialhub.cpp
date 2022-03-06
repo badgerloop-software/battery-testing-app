@@ -3,11 +3,21 @@
 SerialHub::SerialHub() {
 
     for(QSerialPortInfo port: QSerialPortInfo::availablePorts()){
-        Serial serial(("/dev/"+port.portName().toStdString()).c_str());
-        serial.send("tester?\n");
-        if(serial.read().contains("yes")){
-            deviceList.push_back(deviceInfo(("/dev/"+port.portName().toStdString()).c_str(),"","",0));
-            qDebug()<<port.portName();
+        if(port.portName().contains("cu")){
+            Serial serial(("/dev/"+port.portName().toStdString()).c_str());
+            serial.send("tester,\n");
+            QByteArray reply=serial.read();
+            if(reply.contains("yes")){
+                QStringList testID=QString(reply).split(",");
+                deviceList.push_back(deviceInfo(("/dev/"+port.portName().toStdString()).c_str(),testID[1].toStdString(),"",0));
+                devices.push_back(new SerialThread(("/dev/"+port.portName().toStdString()).c_str(),"","",1));
+                devices[devices.size()-1]->start();
+                QObject::connect(&*devices[devices.size()-1],&SerialThread::batteryStatusChange
+                        ,this,&SerialHub::on_batteryStatusChange);
+                QObject::connect(&*devices[devices.size()-1],&SerialThread::ThreadTerminate
+                        ,this,&SerialHub::on_threadTerminate);
+                qDebug()<<port.portName();
+            }
         }
     }
 }
@@ -26,7 +36,7 @@ void SerialHub::deploy(const char* port,
     /*deviceInfo device;
     device.devicePort=port;
     device.batteryID=batteryID;*/
-    deviceList.push_back(deviceInfo(port,testerID, batteryID, current));
+
 
 
 
@@ -36,15 +46,33 @@ void SerialHub::deploy(const char* port,
     toSend+=batteryID;
     toSend+=",";
     toSend+=current;
-    devices.push_back(new SerialThread(port,toSend.c_str(),batteryID));
-    devices[devices.size()-1]->start();
-    QObject::connect(&*devices[devices.size()-1],&SerialThread::ThreadTerminate
-            ,this,&SerialHub::on_ThreadTerminate);
+
+    int index = getIndex(testerID);
+    devices[index]->terminateThread();
+    deviceList[index]=deviceInfo(port,testerID, batteryID, current);
+    deviceList[index].batReady=1;
+    deviceList[index].running=1;
+
+    devices[index]=new SerialThread(port,toSend.c_str(),batteryID,0);
+    QObject::connect(&*devices[index],&SerialThread::batteryStatusChange
+            ,this,&SerialHub::on_batteryStatusChange);
+    QObject::connect(&*devices[index],&SerialThread::ThreadTerminate
+            ,this,&SerialHub::on_threadTerminate);
+    devices[index]->start();
 }
 
-deviceInfo SerialHub::getDeviceConfig(const char *port) {
+int SerialHub::getIndex(std::string testerID) {
+    for(int i = 0 ; i < deviceList.size() ; i ++) {
+        if(deviceList[i].testerID==testerID) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+deviceInfo SerialHub::getDeviceConfig(std::string testerID) {
     for(int i = 0 ; i < deviceList.size() ; i++){
-        if(deviceList[i].devicePort==port) {
+        if(deviceList[i].testerID==testerID) {
             return deviceList[i];
         }
     }
@@ -55,13 +83,27 @@ deviceInfo SerialHub::getDeviceConfig(const char *port) {
     return device;
 }
 
-void SerialHub::on_ThreadTerminate(){
-    for (int i = 0 ; i < devices.size() ; i++){
-        if(devices[i]->terminate){
-            devices.erase(devices.begin()+i);
-            deviceList.erase(deviceList.begin()+i);
+void SerialHub::on_batteryStatusChange() {
+    qDebug()<<"called";
+    for(int i = 0 ; i < devices.size() ; i ++) {
+        deviceList[i].batReady=devices[i]->batReady;
+        if(devices[i]->batReady){
+            qDebug()<<i;
         }
     }
+    emit statusChange();
 }
 
+void SerialHub::on_threadTerminate() {
+    for (int i = 0 ; i < devices.size() ; i++){
+        if(devices[i]->runState==2){
+            deviceList[i].running=0;
+            deviceList[i].batteryID="";
+            deviceList[i].discharge_current=0;
+            deviceList[i].batReady=devices[i]->batReady;
+        }
+
+    }
+    emit statusChange();
+}
 

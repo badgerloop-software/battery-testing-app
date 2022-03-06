@@ -29,14 +29,18 @@ private:
 class SerialThread : public QThread {
     Q_OBJECT
 public:
-    SerialThread(const char* portName,const char* message, const char * fileName) {this->portName=portName;
-                                                           this->message=message;
-                                                            this->fileName=fileName;}
-    QByteArray getData();
-    bool terminate=0;
+    SerialThread(const char* portName,const char* message, const char * fileName, bool idle);
+    //QByteArray getData();
+    void terminateThread(){terminate=1;}
+    bool batReady=0;
+    int runState; //0-idle, 1 running, 2 finished
+    bool idleThread;
 signals:
     void ThreadTerminate();
+    void batteryStatusChange();
 private:
+    bool terminate=0;
+
     std::string message;
     std::string portName;
     std::string fileName;

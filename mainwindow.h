@@ -24,6 +24,7 @@ public:
 public slots:
     void on_startButton_pressed();
     void indexChanged(int index);
+    void on_statusChange();
 private:
     void init_combobox();
     Ui::MainWindow *ui;
