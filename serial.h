@@ -13,6 +13,7 @@
 #include <QSerialPort>
 #include <QDebug>
 #include <unistd.h>
+#include <QMessageBox>
 
 class Serial {
 public:
@@ -35,15 +36,22 @@ public:
     bool batReady=0;
     int runState; //0-idle, 1 running, 2 finished
     bool idleThread;
+
 signals:
     void ThreadTerminate();
     void batteryStatusChange();
 private:
+    //bool for terminate externally
     bool terminate=0;
-
+    void idleState(Serial *serial);
+    void readyState(Serial *serial);
+    void dischargeState(Serial *serial);
+    void chargeState(Serial *serial);
+    void errorState(QString message,Serial *serial);
     std::string message;
     std::string portName;
     std::string fileName;
+    CSVWriter csv;
     void run() override;
 };
 

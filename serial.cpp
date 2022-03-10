@@ -63,47 +63,100 @@ SerialThread::SerialThread(const char* portName,const char* message, const char 
 }
 
 void SerialThread::run() {
-    CSVWriter csv(fileName.c_str());
+    csv.open(fileName.c_str());
     csv.write("header\n");
     Serial serial(portName.c_str());
     serial.send(message.c_str());
-    bool write=1;
+    /*bool write=1;
     if(!idleThread) {
-        runState =1;
-        for(;;){
-            QByteArray receive=serial.read();
-            if(receive.contains("end") || receive.contains("error")){
-                runState=2;
-                emit ThreadTerminate();
-                usleep(2000);
-
-                break;
-            }
-            qDebug()<<receive;
-            if(!receive.contains("yes"))
-                csv.write(receive);
-        }
+        dischargeState(&serial);
     }
     serial.send("clear,");
     serial.send("clear,");
+    idleState(&serial);*/
+    if(idleThread) {
+        idleState(&serial);
+    } else {
+        chargeState(&serial);
+    }
+}
+
+
+
+void SerialThread::idleState(Serial *serial){
     while(!terminate) {
         runState=0;
-        QByteArray receive=serial.read();
+        QByteArray receive=serial->read();
         if(receive.contains("ready")) {
-            if(!batReady) {
-                batReady=1;
-                emit batteryStatusChange();
-            }
+            readyState(serial);
+            break;
         }
 
         else if(receive.contains("idle")) {
             if(batReady) {
                 batReady=0;
-
             }
         }
-        qDebug()<<receive;
 
-        serial.send("ready,");
+        qDebug()<<"idle func "<<receive;
+
+        serial->send("ready,");
     }
 }
+
+
+void SerialThread::readyState(Serial *serial) {
+    batReady=1;
+    emit batteryStatusChange();
+    while(!terminate) {
+        QByteArray receive=serial->read();
+        qDebug()<<"ready func "<<receive;
+    }
+}
+
+void SerialThread::dischargeState(Serial *serial) {
+    runState =1;
+    while(!terminate){
+        QByteArray receive=serial->read();
+        if(receive.contains("end")){
+            runState=2;
+            emit ThreadTerminate();
+            //usleep(2000);
+            idleState(serial);
+            break;
+        }
+        qDebug()<<"discharge func "<<receive;
+    }
+}
+
+void SerialThread::chargeState(Serial *serial) {
+    while(!terminate){
+        QByteArray receive=serial->read();
+        if(receive.contains("discharge")){
+            dischargeState(serial);
+            break;
+        }
+        if(receive.contains("error")){
+            errorState(message.c_str(),serial);
+        }
+        qDebug()<<"charge func "<<receive;
+    }
+}
+
+void SerialThread::errorState(QString message, Serial *serial) {
+    QMessageBox err;
+    err.setText(message);
+    err.setStandardButtons(QMessageBox::Cancel
+                              |QMessageBox::Retry);
+
+    int result = err.exec();
+    if(result==QMessageBox::Cancel) {
+        idleState(serial);
+    }
+
+    if(result==QMessageBox::Retry) {
+        return;
+    }
+}
+
+
