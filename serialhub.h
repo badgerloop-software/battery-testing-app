@@ -9,7 +9,13 @@
 #include <unistd.h>
 #include <QSerialPortInfo>
 
-struct deviceInfo{
+#define IDLE 0
+#define CHARGING 1
+#define DISCHARGING 2
+
+struct deviceInfo : public QObject{
+    Q_OBJECT
+public:
     deviceInfo(){}
     deviceInfo(std::string port,
                std::string testerID,
@@ -25,6 +31,7 @@ struct deviceInfo{
     int discharge_current;
     bool running=0;
     bool batReady;
+    int batState;
 };
 
 class SerialHub : public QObject{
@@ -32,8 +39,9 @@ class SerialHub : public QObject{
 public:
     SerialHub();
     void deploy(const char* port, const char* testerID, const char* batteryID, int current);
-    deviceInfo getDeviceConfig(std::string testerID);
-    std::vector<deviceInfo> getDevices(){return deviceList;};
+    void deployIdle(const char* port);
+    deviceInfo* getDeviceConfig(std::string testerID);
+    std::vector<deviceInfo*> getDevices(){return deviceList;};
 public slots:
     void on_batteryStatusChange();
     void on_threadTerminate();
@@ -42,7 +50,7 @@ signals:
 private:
     int getIndex(std::string testerID);
     std::vector<SerialThread*> devices;
-    std::vector<deviceInfo> deviceList;
+    std::vector<deviceInfo*> deviceList;
 };
 
 #endif // SERIALHUB_H

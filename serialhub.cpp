@@ -9,7 +9,7 @@ SerialHub::SerialHub() {
             QByteArray reply=serial.read();
             if(reply.contains("yes")){
                 QStringList testID=QString(reply).split(",");
-                deviceList.push_back(deviceInfo(("/dev/"+port.portName().toStdString()).c_str(),testID[1].toStdString(),"",0));
+                deviceList.push_back(new deviceInfo(("/dev/"+port.portName().toStdString()).c_str(),testID[1].toStdString(),"",0));
                 devices.push_back(new SerialThread(("/dev/"+port.portName().toStdString()).c_str(),"","",1));
                 devices[devices.size()-1]->start();
                 QObject::connect(&*devices[devices.size()-1],&SerialThread::batteryStatusChange
@@ -49,9 +49,9 @@ void SerialHub::deploy(const char* port,
 
     int index = getIndex(testerID);
     devices[index]->terminateThread();
-    deviceList[index]=deviceInfo(port,testerID, batteryID, current);
-    deviceList[index].batReady=1;
-    deviceList[index].running=1;
+    deviceList[index]=new deviceInfo(port,testerID, batteryID, current);
+    deviceList[index]->batReady=1;
+    deviceList[index]->running=1;
 
     devices[index]=new SerialThread(port,toSend.c_str(),batteryID,0);
     QObject::connect(&*devices[index],&SerialThread::batteryStatusChange
@@ -63,30 +63,30 @@ void SerialHub::deploy(const char* port,
 
 int SerialHub::getIndex(std::string testerID) {
     for(int i = 0 ; i < deviceList.size() ; i ++) {
-        if(deviceList[i].testerID==testerID) {
+        if(deviceList[i]->testerID==testerID) {
             return i;
         }
     }
     return -1;
 }
 
-deviceInfo SerialHub::getDeviceConfig(std::string testerID) {
+deviceInfo* SerialHub::getDeviceConfig(std::string testerID) {
     for(int i = 0 ; i < deviceList.size() ; i++){
-        if(deviceList[i].testerID==testerID) {
+        if(deviceList[i]->testerID==testerID) {
             return deviceList[i];
         }
     }
-    deviceInfo device;
-    device.batteryID="DNE";
-    device.testerID="";
-    device.discharge_current=0;
+    deviceInfo *device= new deviceInfo();
+    device->batteryID="DNE";
+    device->testerID="";
+    device->discharge_current=0;
     return device;
 }
 
 void SerialHub::on_batteryStatusChange() {
     qDebug()<<"called";
     for(int i = 0 ; i < devices.size() ; i ++) {
-        deviceList[i].batReady=devices[i]->batReady;
+        deviceList[i]->batReady=devices[i]->batReady;
         if(devices[i]->batReady){
             qDebug()<<i;
         }
@@ -97,10 +97,10 @@ void SerialHub::on_batteryStatusChange() {
 void SerialHub::on_threadTerminate() {
     for (int i = 0 ; i < devices.size() ; i++){
         if(devices[i]->runState==2){
-            deviceList[i].running=0;
-            deviceList[i].batteryID="";
-            deviceList[i].discharge_current=0;
-            deviceList[i].batReady=devices[i]->batReady;
+            deviceList[i]->running=0;
+            deviceList[i]->batteryID="";
+            deviceList[i]->discharge_current=0;
+            deviceList[i]->batReady=devices[i]->batReady;
         }
 
     }
