@@ -11,9 +11,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Network SerialPort)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Widgets Network SerialPort REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Core Network SerialPort)
 
 FILE(COPY Initializing.png DESTINATION "${CMAKE_BINARY_DIR}")
 
@@ -53,7 +53,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(BatteryTester PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt6::Network Qt6::SerialPort)
+target_link_libraries(BatteryTester PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Core Qt6::Network Qt6::SerialPort)
 
 set_target_properties(BatteryTester PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

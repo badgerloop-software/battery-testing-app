@@ -6,8 +6,6 @@
 
 Serial::Serial() {}
 
-
-
 Serial::Serial(const char* portName ) {
     serial.setPortName(portName);
     serial.open(QIODevice::ReadWrite);
@@ -33,8 +31,8 @@ void Serial::open(const char* portName) {
 }
 
 /**
- * @brief Serial::sendMessage notify the thread by changing the bool value to send message
- * @param message
+ * @brief Serial::sendMessage Send serial message
+ * @param message Message to send
  */
 void Serial::send(QByteArray Message) {
     if (serial.isOpen() && serial.isWritable()) {
@@ -44,119 +42,206 @@ void Serial::send(QByteArray Message) {
     }
 }
 
-
 QByteArray Serial::read() {
     serial.waitForReadyRead(1000);
     return serial.readAll();
 }
 
-/**
- * @brief Serial::threadProcedure get data recieved from the serial port and put into buffer for access through getdata()
- */
+
+//-------------------------------------------------------------------------------------------
 
 
-SerialThread::SerialThread(const char* portName,const char* message, const char * fileName, bool idle) {
+SerialThread::SerialThread(const char* portName) {
     this->portName=portName;
-    this->message=message;
-    this->fileName=fileName;
-    idleThread=idle;
+    currState = IDLE; // Start in idle state
 }
 
 void SerialThread::run() {
-    csv.open(fileName.c_str());
-    csv.write("header\n");
-    Serial serial(portName.c_str());
-    serial.send(message.c_str());
-    /*bool write=1;
-    if(!idleThread) {
-        dischargeState(&serial);
+    qDebug()<<"start SerialThread";
+
+    this->serial = new Serial(portName.c_str());
+
+    while(true) {
+        switch(currState) {
+            case IDLE:
+                currState = idleState();
+                break;
+            case READY:
+                currState = readyState();
+                break;
+            case CHARGE:
+                currState = chargeState();
+                break;
+            case DISCHARGE:
+                currState = dischargeState();
+                break;
+            case ERROR:
+                // Wait for user to resume or cancel the test and change the state
+                break;
+            default:
+                qDebug()<<"Warning: Default state was reached";
+                usleep(2000000);
+                break;
+        }
     }
-    serial.send("clear,");
-    serial.send("clear,");
-    idleState(&serial);*/
-    if(idleThread) {
-        idleState(&serial);
+}
+
+
+
+int SerialThread::idleState(){
+    QByteArray receive = serial->read();
+    if(receive.contains("ready")) {
+        batReady = 1;
+        emit batteryStatusChange();
+        qDebug()<<"ready: "<<receive;
+        return READY;
+    } else if(receive.contains("error")) {
+        qDebug()<<"error: "<<receive;
+
+        emit error(portName, receive.toStdString().c_str(), currState);
+        return ERROR;
+    }
+
+    return IDLE;
+}
+
+
+int SerialThread::readyState() {
+    QByteArray receive=serial->read();
+
+    if(receive.contains("charge")) {
+        qDebug()<<"charge: "<<receive<<QString::fromStdString(portName);
+
+        this->csv = new CSVWriter();
+        csv->open(fileName.c_str());
+        return CHARGE;
+    } else if(receive.contains("error")) {
+        qDebug()<<"error: "<<receive;
+
+        emit error(portName, receive.toStdString().c_str(), currState);
+        return ERROR;
+    }
+
+    return READY;
+}
+
+/**
+ * @brief SerialThread::startTest Handle signalStartTest signal sent from SerialHub when battery is ready and start button is pressed.
+ *        Sets fileName, discharge current, and sends starttest message to Arduino to transition into the charge state
+ * @param port Serial port of the tester which is to start a test
+ * @param batteryID ID of the battery which is to be tested
+ * @param current Discharge current for the test
+ */
+void SerialThread::startTest(std::string port, const char* batteryID, double dischargeCurrent) {
+    if(port == portName) {
+        fileName = "../Battery Testing Data/";
+        fileName += batteryID;
+        fileName += ".csv";
+        current = dischargeCurrent;
+
+        std::string toSend = "starttest,";
+        toSend += current;
+
+        serial->send(toSend.c_str());
+    }
+}
+
+
+int SerialThread::chargeState() {
+    QByteArray receive = serial->read();
+    if(receive.contains("discharge")) {
+        qDebug()<<"discharge: "<<receive;
+
+        csv->write("volts,therm1,therm2,therm3\n"); // Add headers to csv file
+
+        return DISCHARGE;
+    } else if(receive.contains("error")) {
+        qDebug()<<"error: "<<receive;
+
+        emit error(portName, receive.toStdString().c_str(), currState);
+        return ERROR;
+    }
+    return CHARGE;
+}
+
+int SerialThread::dischargeState() {
+    QByteArray receive = serial->read();
+    if(receive.contains("error")) {
+        qDebug()<<"error: "<<receive;
+
+        emit error(portName, receive.toStdString().c_str(), currState);
+        return ERROR;
+    } else if(receive.contains("finish")) {
+        qDebug()<<"finish: "<<receive;
+
+        csv->close();
+        delete csv;
+        batReady = 0;
+
+        emit testEnded(portName);
+        return IDLE;
     } else {
-        chargeState(&serial);
+        if(!receive.contains("discharge")) {
+            csv->write(receive);
+            qDebug()<<receive;
+        }
+        return DISCHARGE;
     }
 }
 
 
-
-void SerialThread::idleState(Serial *serial){
-    while(!terminate) {
-        runState=0;
-        QByteArray receive=serial->read();
-        if(receive.contains("ready")) {
-            readyState(serial);
-            break;
-        }
-
-        else if(receive.contains("idle")) {
-            if(batReady) {
-                batReady=0;
+/**
+ * @brief SerialThread::handleErrorDecision Handles user's decision to resume or cancel the test after an error. Triggered by errorDecisionMade()
+ * @param port Serial port of tester with the error being handled
+ * @param prevState State tester was in when error was thrown
+ * @param errorDecision int indicating user's decision to resume test (QMessageBox::Retry) or cancel test (QMessageBox::Cancel)
+ */
+void SerialThread::handleErrorDecision(std::string port, int prevState, int decision) {
+    if(port == this->portName) {
+        if(decision == QMessageBox::Retry) { // Resume test from previous state
+            qDebug()<<"SerialThread beginning of resumeTest() (for correct port/tester) "<<QString::fromStdString(portName);
+            switch(prevState) {
+                case IDLE:
+                    serial->send("resume:idle");
+                    qDebug()<<"resume: idle";
+                    break;
+                case READY:
+                    serial->send("resume:ready");
+                    qDebug()<<"resume: ready";
+                    break;
+                case CHARGE:
+                    serial->send("resume:charge");
+                    qDebug()<<"resume: charge";
+                    break;
+                case DISCHARGE:
+                    serial->send("resume:discharge");
+                    qDebug()<<"resume: discharge";
+                    break;
+                default:
+                    qDebug()<<"Warning: The previous state in which an error was thrown was not idle, charge, or discharge";
+                    break;
             }
+
+            currState = prevState;
+        } else { // Cancel test and return to idle state
+            qDebug()<<"SerialThread beginning of cancelTest() (for correct port/tester) "<<QString::fromStdString(portName);
+            if(prevState != IDLE) {
+                qDebug()<<"Error didn't come from idle state";
+
+                if(prevState != READY) {
+                    qDebug()<<"Error didn't come from ready state";
+
+                    csv->remove(fileName.c_str());
+                    delete csv;
+                }
+
+                batReady = 0;
+                emit testEnded(portName);
+            }
+            qDebug()<<"SerialThread cancel test";
+
+            serial->send("resume:idle");
+            currState = IDLE;
         }
-
-        qDebug()<<"idle func "<<receive;
-
-        serial->send("ready,");
     }
 }
-
-
-void SerialThread::readyState(Serial *serial) {
-    batReady=1;
-    emit batteryStatusChange();
-    while(!terminate) {
-        QByteArray receive=serial->read();
-        qDebug()<<"ready func "<<receive;
-    }
-}
-
-void SerialThread::dischargeState(Serial *serial) {
-    runState =1;
-    while(!terminate){
-        QByteArray receive=serial->read();
-        if(receive.contains("end")){
-            runState=2;
-            emit ThreadTerminate();
-            //usleep(2000);
-            idleState(serial);
-            break;
-        }
-        qDebug()<<"discharge func "<<receive;
-    }
-}
-
-void SerialThread::chargeState(Serial *serial) {
-    while(!terminate){
-        QByteArray receive=serial->read();
-        if(receive.contains("discharge")){
-            dischargeState(serial);
-            break;
-        }
-        if(receive.contains("error")){
-            errorState(message.c_str(),serial);
-        }
-        qDebug()<<"charge func "<<receive;
-    }
-}
-
-void SerialThread::errorState(QString message, Serial *serial) {
-    QMessageBox err;
-    err.setText(message);
-    err.setStandardButtons(QMessageBox::Cancel
-                              |QMessageBox::Retry);
-
-    int result = err.exec();
-    if(result==QMessageBox::Cancel) {
-        idleState(serial);
-    }
-
-    if(result==QMessageBox::Retry) {
-        return;
-    }
-}
-
-

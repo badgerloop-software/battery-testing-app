@@ -8,10 +8,8 @@
 #include <algorithm>
 #include <unistd.h>
 #include <QSerialPortInfo>
+#include <QDebug>
 
-#define IDLE 0
-#define CHARGING 1
-#define DISCHARGING 2
 
 struct deviceInfo : public QObject{
     Q_OBJECT
@@ -19,7 +17,8 @@ public:
     deviceInfo(){}
     deviceInfo(std::string port,
                std::string testerID,
-               std::string batteryID, int current){
+               std::string batteryID,
+               double current){
         this->devicePort=port;
         this->testerID=testerID;
         this->batteryID=batteryID;
@@ -28,29 +27,31 @@ public:
     std::string devicePort;
     std::string testerID;
     std::string batteryID;
-    int discharge_current;
-    bool running=0;
-    bool batReady;
-    int batState;
+    double discharge_current;
+    bool running=false;
+    bool batReady=false;
 };
 
 class SerialHub : public QObject{
     Q_OBJECT
 public:
     SerialHub();
-    void deploy(const char* port, const char* testerID, const char* batteryID, int current);
-    void deployIdle(const char* port);
+    void startTest(const char* testerID, const char* batteryID, double current);
     deviceInfo* getDeviceConfig(std::string testerID);
-    std::vector<deviceInfo*> getDevices(){return deviceList;};
+    std::vector<deviceInfo*> getDevices(){return deviceInfoList;};
 public slots:
     void on_batteryStatusChange();
-    void on_threadTerminate();
+    void on_testEnded(std::string port);
+    void on_error(std::string port, QString message, int prevState);
 signals:
     void statusChange();
+    void signalStartTest(std::string port, const char* batteryID, double current);
+    void errorDecisionMade(std::string port, int prevState, int decision);
 private:
     int getIndex(std::string testerID);
     std::vector<SerialThread*> devices;
-    std::vector<deviceInfo*> deviceList;
+    std::vector<deviceInfo*> deviceInfoList;
 };
+
 
 #endif // SERIALHUB_H

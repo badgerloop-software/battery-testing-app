@@ -15,8 +15,8 @@ public:
     void open(const char* fileName);
     void write(const char *data);
     void close() {fout.close();};
+    void remove(const char* fileName);
 private:
-    //const char* fileName;
     std::ofstream fout;
 };
 

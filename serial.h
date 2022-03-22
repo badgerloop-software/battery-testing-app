@@ -11,9 +11,16 @@
 #include <QCoreApplication>
 #include <iostream>
 #include <QSerialPort>
+#include <QThread>
 #include <QDebug>
 #include <unistd.h>
 #include <QMessageBox>
+
+#define IDLE 0
+#define READY 1
+#define CHARGE 2
+#define DISCHARGE 3
+#define ERROR 4
 
 class Serial {
 public:
@@ -30,30 +37,30 @@ private:
 class SerialThread : public QThread {
     Q_OBJECT
 public:
-    SerialThread(const char* portName,const char* message, const char * fileName, bool idle);
-    //QByteArray getData();
-    void terminateThread(){terminate=1;}
-    bool batReady=0;
-    int runState; //0-idle, 1 running, 2 finished
-    bool idleThread;
+    SerialThread(const char* portName);
 
+    bool batReady=0;
+public slots:
+    void handleErrorDecision(std::string port, int prevState, int decision);
+    void startTest(std::string port, const char* batteryID, double dischargeCurrent);
 signals:
-    void ThreadTerminate();
     void batteryStatusChange();
+    void testEnded(std::string port);
+    void error(std::string port, QString message, int prevState);
 private:
-    //bool for terminate externally
-    bool terminate=0;
-    void idleState(Serial *serial);
-    void readyState(Serial *serial);
-    void dischargeState(Serial *serial);
-    void chargeState(Serial *serial);
-    void errorState(QString message,Serial *serial);
-    std::string message;
+    int idleState();
+    int readyState();
+    int chargeState();
+    int dischargeState();
+    void run() override;
+    int currState;
+    double current;
     std::string portName;
     std::string fileName;
-    CSVWriter csv;
-    void run() override;
+    CSVWriter *csv;
+    Serial *serial;
 };
+
 
 #endif //SERIAL_SERIAL_H
 

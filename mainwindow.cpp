@@ -7,14 +7,13 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    //serial = new Serial("/dev/cu.usbserial-2110");
 
     connect(ui->comboBox, SIGNAL(currentIndexChanged(int)),
                 this, SLOT(indexChanged(int)));
-    serial= new SerialHub();
+    serialHub= new SerialHub();
     ui->BatteryStat->setStyleSheet("QLabel { background-color : red; }");
     init_combobox();
-    connect(serial,&SerialHub::statusChange,this,&MainWindow::on_statusChange);
+    connect(serialHub,&SerialHub::statusChange,this,&MainWindow::on_statusChange);
 }
 
 MainWindow::~MainWindow()
@@ -23,7 +22,7 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::init_combobox(){
-    std::vector<deviceInfo*> devices = serial->getDevices();
+    std::vector<deviceInfo*> devices = serialHub->getDevices();
     for(int i = 0 ; i < devices.size() ; i++) {
         ui->comboBox->addItem(devices[i]->testerID.c_str());
     }
@@ -31,7 +30,7 @@ void MainWindow::init_combobox(){
 
 void MainWindow::indexChanged(int index) {
     QString selected = ui->comboBox->currentText();
-    deviceInfo *device = serial->getDeviceConfig(selected.toStdString().c_str());
+    deviceInfo *device = serialHub->getDeviceConfig(selected.toStdString().c_str());
     if(device->batteryID=="DNE") {
         ui->batteryID->setText("");
         ui->current->setText("");
@@ -53,21 +52,59 @@ void MainWindow::indexChanged(int index) {
 }
 
 void MainWindow::on_startButton_pressed() {
-    std::string batteryID=ui->batteryID->text().toStdString(),
-            current=ui->current->text().toStdString();
-    if(batteryID=="" || current==""){
+    std::string batteryID = ui->batteryID->text().toStdString(),
+                current = ui->current->text().toStdString();
+    deviceInfo* devInfo = serialHub->getDeviceConfig(ui->comboBox->currentText().toStdString());
+
+    // Check validity of battery ID, discharge current, and state (should be ready)
+    try {
+        if(!devInfo->batReady) {
+            QMessageBox msgbox;
+            msgbox.setText("Please insert a battery and press the button on the battery tester");
+            msgbox.exec();
+            return;
+        } else if(batteryID == "" || current == "") {
+            QMessageBox msgbox;
+            msgbox.setText("Please fill in all data");
+            msgbox.exec();
+            return;
+        } else if(std::stod(current) <= 0) {
+            QMessageBox msgbox;
+            msgbox.setText("Please enter a valid current");
+            msgbox.exec();
+            return;
+        } else {
+            std::ifstream f("../Battery Testing Data/" + batteryID + ".csv");
+
+            if(f.good()) {
+                QMessageBox fileExistsBox;
+                fileExistsBox.setWindowTitle("WARNING");
+                fileExistsBox.setText(QString::fromStdString("Test data for battery " + batteryID + " already exists. If you continue, battery " + batteryID + "'s existing test data will be removed.\nAre you sure you want to continue?"));
+                fileExistsBox.setStandardButtons(QMessageBox::No|QMessageBox::Yes);
+
+                if(fileExistsBox.exec() == QMessageBox::No) {
+                    return;
+                }
+            }
+
+        }
+    } catch(const std::invalid_argument& ia) {
         QMessageBox msgbox;
-        msgbox.setText("Please fill in all data");
+        msgbox.setText("Please enter a valid current");
         msgbox.exec();
         return;
     }
-    std::string port=serial->getDeviceConfig(ui->comboBox->currentText().toStdString())->devicePort;
-    serial->deploy(port.c_str(),ui->comboBox->currentText().toStdString().c_str(),batteryID.c_str(),std::stoi(current));
+
+    devInfo->batteryID = batteryID;
+    devInfo->discharge_current = std::stod(current);
+    devInfo->running = true;
+    emit serialHub->signalStartTest(devInfo->devicePort, batteryID.c_str(), std::stod(current));
+
     ui->startButton->setText("Running...");
 }
 
 void MainWindow::on_statusChange() {
-    deviceInfo *device = serial->getDeviceConfig(ui->comboBox->currentText().toStdString().c_str());
+    deviceInfo *device = serialHub->getDeviceConfig(ui->comboBox->currentText().toStdString().c_str());
     ui->batteryID->setText(device->batteryID.c_str());
     ui->current->setText(std::to_string(device->discharge_current).c_str());
     if(device->running)
