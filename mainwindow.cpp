@@ -33,7 +33,7 @@ void MainWindow::indexChanged(int index) {
     deviceInfo *device = serialHub->getDeviceConfig(selected.toStdString().c_str());
     if(device->batteryID=="DNE") {
         ui->batteryID->setText("");
-        ui->current->setText("");
+        ui->current->setText(std::to_string(device->discharge_current).c_str());
         ui->startButton->setText("Start");
     } else {
         ui->batteryID->setText(device->batteryID.c_str());
@@ -62,6 +62,7 @@ void MainWindow::on_startButton_pressed() {
             QMessageBox msgbox;
             msgbox.setText("Please insert a battery and press the button on the battery tester");
             msgbox.exec();
+            qApp->processEvents();
             return;
         } else if(batteryID == "" || current == "") {
             QMessageBox msgbox;

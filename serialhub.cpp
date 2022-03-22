@@ -7,7 +7,7 @@
 SerialHub::SerialHub() {
     for(QSerialPortInfo port: QSerialPortInfo::availablePorts()){
         qDebug()<<port.portName();
-        if(port.portName().contains("ttyUSB") || port.portName().contains("ttyACM")){
+        if(port.portName().contains("ttyUSB") || port.portName().contains("ttyACM") || port.portName().contains("cu")){
             qDebug()<<"contains USB or ACM";
             Serial serial(("/dev/"+port.portName().toStdString()).c_str());
             serial.send("tester,\n");
@@ -78,7 +78,7 @@ deviceInfo* SerialHub::getDeviceConfig(std::string testerID) {
     deviceInfo *deviceInformation = new deviceInfo();
     deviceInformation->batteryID = "DNE";
     deviceInformation->testerID = "";
-    deviceInformation->discharge_current = 0;
+    deviceInformation->discharge_current = 1.5;
 
     return deviceInformation;
 }
