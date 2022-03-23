@@ -6,16 +6,16 @@
  */
 SerialHub::SerialHub() {
     for(QSerialPortInfo port: QSerialPortInfo::availablePorts()){
-        qDebug()<<port.portName();
+        //qDebug()<<port.portName();
         if(port.portName().contains("ttyUSB") || port.portName().contains("ttyACM") || port.portName().contains("cu")){
-            qDebug()<<"contains USB or ACM";
+            //qDebug()<<"contains USB or ACM";
             Serial serial(("/dev/"+port.portName().toStdString()).c_str());
             serial.send("tester,\n");
             QByteArray reply = serial.read();
-            qDebug()<<"Reply: "<<reply;
+            //qDebug()<<"Reply: "<<reply;
             if(reply.contains("yes")){
                 QStringList testID=QString(reply).split(",");
-                deviceInfoList.push_back(new deviceInfo(("/dev/"+port.portName().toStdString()).c_str(),testID[1].toStdString(), "", 0));
+                deviceInfoList.push_back(new deviceInfo(("/dev/"+port.portName().toStdString()).c_str(),testID[1].toStdString(), "", 1.5));
                 devices.push_back(new SerialThread(("/dev/"+port.portName().toStdString()).c_str()));
 
                 QObject::connect(&*devices[devices.size()-1], &SerialThread::batteryStatusChange,
@@ -87,13 +87,13 @@ deviceInfo* SerialHub::getDeviceConfig(std::string testerID) {
  * @brief SerialHub::on_batteryStatusChange Handle batteryStatusChange signal from SerialThread. Notifies MainWindow of status change
  */
 void SerialHub::on_batteryStatusChange() {
-    qDebug()<<"SerialHub: on_BatteryStatusChange() called";
+    //qDebug()<<"SerialHub: on_BatteryStatusChange() called";
 
     for(int i = 0 ; i < devices.size() ; i ++) {
         deviceInfoList[i]->batReady = devices[i]->batReady;
 
         if(devices[i]->batReady){
-            qDebug()<<i<<" is ready (batReady is true)";
+            //qDebug()<<i<<" is ready (batReady is true)";
         }
     }
 
@@ -106,9 +106,9 @@ void SerialHub::on_batteryStatusChange() {
 void SerialHub::on_testEnded(std::string port) {
     for (int i = 0 ; i < devices.size() ; i++){
         if(deviceInfoList[i]->devicePort == port) {
-            deviceInfoList[i]->running = 0; // TODO false
+            deviceInfoList[i]->running = false;
             deviceInfoList[i]->batteryID = "";
-            deviceInfoList[i]->discharge_current = 0;
+            deviceInfoList[i]->discharge_current = 1.5;
             deviceInfoList[i]->batReady = devices[i]->batReady;
         }
     }
@@ -142,7 +142,7 @@ void SerialHub::on_error(std::string port, QString message, int prevState) {
                     title += ": Discharging";
                     break;
                 default:
-                    qDebug()<<"SerialHub: Error was from state other than idle, ready, charging, or discharging";
+                    //qDebug()<<"SerialHub: Error was from state other than idle, ready, charging, or discharging";
                     break;
             }
         }
@@ -153,7 +153,7 @@ void SerialHub::on_error(std::string port, QString message, int prevState) {
     err.setText(message);
     err.setStandardButtons(QMessageBox::Cancel|QMessageBox::Retry);
 
-    qDebug()<<"error state is running";
+    //qDebug()<<"error state is running";
 
     emit errorDecisionMade(port, prevState, err.exec());
 }

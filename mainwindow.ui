@@ -113,7 +113,7 @@ Current(A)</string>
    <widget class="QLabel" name="BatteryStat">
     <property name="geometry">
      <rect>
-      <x>620</x>
+      <x>630</x>
       <y>120</y>
       <width>16</width>
       <height>16</height>

@@ -57,7 +57,7 @@ SerialThread::SerialThread(const char* portName) {
 }
 
 void SerialThread::run() {
-    qDebug()<<"start SerialThread";
+    //qDebug()<<"start SerialThread";
 
     this->serial = new Serial(portName.c_str());
 
@@ -79,7 +79,7 @@ void SerialThread::run() {
                 // Wait for user to resume or cancel the test and change the state
                 break;
             default:
-                qDebug()<<"Warning: Default state was reached";
+                //qDebug()<<"Warning: Default state was reached";
                 usleep(2000000);
                 break;
         }
@@ -93,10 +93,10 @@ int SerialThread::idleState(){
     if(receive.contains("ready")) {
         batReady = 1;
         emit batteryStatusChange();
-        qDebug()<<"ready: "<<receive;
+        //qDebug()<<"ready: "<<receive;
         return READY;
     } else if(receive.contains("error")) {
-        qDebug()<<"error: "<<receive;
+        //qDebug()<<"error: "<<receive;
 
         emit error(portName, receive.toStdString().c_str(), currState);
         return ERROR;
@@ -110,13 +110,13 @@ int SerialThread::readyState() {
     QByteArray receive=serial->read();
 
     if(receive.contains("charge")) {
-        qDebug()<<"charge: "<<receive<<QString::fromStdString(portName);
+        //qDebug()<<"charge: "<<receive<<QString::fromStdString(portName);
 
         this->csv = new CSVWriter();
         csv->open(fileName.c_str());
         return CHARGE;
     } else if(receive.contains("error")) {
-        qDebug()<<"error: "<<receive;
+        //qDebug()<<"error: "<<receive;
 
         emit error(portName, receive.toStdString().c_str(), currState);
         return ERROR;
@@ -135,13 +135,14 @@ int SerialThread::readyState() {
 void SerialThread::startTest(std::string port, const char* batteryID, double dischargeCurrent) {
     if(port == portName) {
         fileName = "../Battery Testing Data/";
-        fileName += batteryID;
+        fileName += std::string(batteryID).substr(std::string(batteryID).length()-6, 6);
         fileName += ".csv";
         current = dischargeCurrent;
 
         std::string toSend = "starttest,";
-        toSend += current;
+        toSend += std::to_string(current);
 
+        //qDebug()<<QString::fromStdString(toSend);
         serial->send(toSend.c_str());
     }
 }
@@ -150,13 +151,13 @@ void SerialThread::startTest(std::string port, const char* batteryID, double dis
 int SerialThread::chargeState() {
     QByteArray receive = serial->read();
     if(receive.contains("discharge")) {
-        qDebug()<<"discharge: "<<receive;
+        //qDebug()<<"discharge: "<<receive;
 
         csv->write("volts,therm1,therm2,therm3\n"); // Add headers to csv file
 
         return DISCHARGE;
     } else if(receive.contains("error")) {
-        qDebug()<<"error: "<<receive;
+        //qDebug()<<"error: "<<receive;
 
         emit error(portName, receive.toStdString().c_str(), currState);
         return ERROR;
@@ -167,12 +168,12 @@ int SerialThread::chargeState() {
 int SerialThread::dischargeState() {
     QByteArray receive = serial->read();
     if(receive.contains("error")) {
-        qDebug()<<"error: "<<receive;
+        //qDebug()<<"error: "<<receive;
 
         emit error(portName, receive.toStdString().c_str(), currState);
         return ERROR;
     } else if(receive.contains("finish")) {
-        qDebug()<<"finish: "<<receive;
+        //qDebug()<<"finish: "<<receive;
 
         csv->close();
         delete csv;
@@ -183,7 +184,7 @@ int SerialThread::dischargeState() {
     } else {
         if(!receive.contains("discharge")) {
             csv->write(receive);
-            qDebug()<<receive;
+            //qDebug()<<receive;
         }
         return DISCHARGE;
     }
@@ -199,37 +200,37 @@ int SerialThread::dischargeState() {
 void SerialThread::handleErrorDecision(std::string port, int prevState, int decision) {
     if(port == this->portName) {
         if(decision == QMessageBox::Retry) { // Resume test from previous state
-            qDebug()<<"SerialThread beginning of resumeTest() (for correct port/tester) "<<QString::fromStdString(portName);
+            //qDebug()<<"SerialThread beginning of resumeTest() (for correct port/tester) "<<QString::fromStdString(portName);
             switch(prevState) {
                 case IDLE:
                     serial->send("resume:idle");
-                    qDebug()<<"resume: idle";
+                    //qDebug()<<"resume: idle";
                     break;
                 case READY:
                     serial->send("resume:ready");
-                    qDebug()<<"resume: ready";
+                    //qDebug()<<"resume: ready";
                     break;
                 case CHARGE:
                     serial->send("resume:charge");
-                    qDebug()<<"resume: charge";
+                    //qDebug()<<"resume: charge";
                     break;
                 case DISCHARGE:
                     serial->send("resume:discharge");
-                    qDebug()<<"resume: discharge";
+                    //qDebug()<<"resume: discharge";
                     break;
                 default:
-                    qDebug()<<"Warning: The previous state in which an error was thrown was not idle, charge, or discharge";
+                    //qDebug()<<"Warning: The previous state in which an error was thrown was not idle, charge, or discharge";
                     break;
             }
 
             currState = prevState;
         } else { // Cancel test and return to idle state
-            qDebug()<<"SerialThread beginning of cancelTest() (for correct port/tester) "<<QString::fromStdString(portName);
+            //qDebug()<<"SerialThread beginning of cancelTest() (for correct port/tester) "<<QString::fromStdString(portName);
             if(prevState != IDLE) {
-                qDebug()<<"Error didn't come from idle state";
+                //qDebug()<<"Error didn't come from idle state";
 
                 if(prevState != READY) {
-                    qDebug()<<"Error didn't come from ready state";
+                    //qDebug()<<"Error didn't come from ready state";
 
                     csv->remove(fileName.c_str());
                     delete csv;
@@ -238,7 +239,7 @@ void SerialThread::handleErrorDecision(std::string port, int prevState, int deci
                 batReady = 0;
                 emit testEnded(portName);
             }
-            qDebug()<<"SerialThread cancel test";
+            //qDebug()<<"SerialThread cancel test";
 
             serial->send("resume:idle");
             currState = IDLE;

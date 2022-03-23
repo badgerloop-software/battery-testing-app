@@ -56,52 +56,54 @@ void MainWindow::on_startButton_pressed() {
                 current = ui->current->text().toStdString();
     deviceInfo* devInfo = serialHub->getDeviceConfig(ui->comboBox->currentText().toStdString());
 
-    // Check validity of battery ID, discharge current, and state (should be ready)
-    try {
-        if(!devInfo->batReady) {
-            QMessageBox msgbox;
-            msgbox.setText("Please insert a battery and press the button on the battery tester");
-            msgbox.exec();
-            qApp->processEvents();
-            return;
-        } else if(batteryID == "" || current == "") {
-            QMessageBox msgbox;
-            msgbox.setText("Please fill in all data");
-            msgbox.exec();
-            return;
-        } else if(std::stod(current) <= 0) {
+    if(ui->startButton->text() == "Start") {
+        // Check validity of battery ID, discharge current, and state (should be ready)
+        try {
+            if(!devInfo->batReady) {
+                QMessageBox msgbox;
+                msgbox.setText("Please insert a battery and press the button on the battery tester");
+                msgbox.exec();
+                qApp->processEvents();
+                return;
+            } else if(batteryID == "" || current == "") {
+                QMessageBox msgbox;
+                msgbox.setText("Please fill in all data");
+                msgbox.exec();
+                return;
+            } else if(std::stod(current) <= 0) {
+                QMessageBox msgbox;
+                msgbox.setText("Please enter a valid current");
+                msgbox.exec();
+                return;
+            } else {
+                std::ifstream f("../Battery Testing Data/" + batteryID.substr(batteryID.length()-6, 6) + ".csv");
+
+                if(f.good()) {
+                    QMessageBox fileExistsBox;
+                    fileExistsBox.setWindowTitle("WARNING");
+                    fileExistsBox.setText(QString::fromStdString("Test data for battery " + batteryID + " already exists. If you continue, battery " + batteryID + "'s existing test data will be removed.\nAre you sure you want to continue?"));
+                    fileExistsBox.setStandardButtons(QMessageBox::No|QMessageBox::Yes);
+
+                    if(fileExistsBox.exec() == QMessageBox::No) {
+                        return;
+                    }
+                }
+
+            }
+        } catch(const std::invalid_argument& ia) {
             QMessageBox msgbox;
             msgbox.setText("Please enter a valid current");
             msgbox.exec();
             return;
-        } else {
-            std::ifstream f("../Battery Testing Data/" + batteryID + ".csv");
-
-            if(f.good()) {
-                QMessageBox fileExistsBox;
-                fileExistsBox.setWindowTitle("WARNING");
-                fileExistsBox.setText(QString::fromStdString("Test data for battery " + batteryID + " already exists. If you continue, battery " + batteryID + "'s existing test data will be removed.\nAre you sure you want to continue?"));
-                fileExistsBox.setStandardButtons(QMessageBox::No|QMessageBox::Yes);
-
-                if(fileExistsBox.exec() == QMessageBox::No) {
-                    return;
-                }
-            }
-
         }
-    } catch(const std::invalid_argument& ia) {
-        QMessageBox msgbox;
-        msgbox.setText("Please enter a valid current");
-        msgbox.exec();
-        return;
+
+        devInfo->batteryID = batteryID;
+        devInfo->discharge_current = std::stod(current);
+        devInfo->running = true;
+        emit serialHub->signalStartTest(devInfo->devicePort, batteryID.c_str(), std::stod(current));
+
+        ui->startButton->setText("Running...");
     }
-
-    devInfo->batteryID = batteryID;
-    devInfo->discharge_current = std::stod(current);
-    devInfo->running = true;
-    emit serialHub->signalStartTest(devInfo->devicePort, batteryID.c_str(), std::stod(current));
-
-    ui->startButton->setText("Running...");
 }
 
 void MainWindow::on_statusChange() {
