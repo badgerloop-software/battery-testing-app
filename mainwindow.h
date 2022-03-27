@@ -25,12 +25,16 @@ public slots:
     void on_startButton_pressed();
     void indexChanged(int index);
     void on_statusChange();
+    void on_errorButtonPressed();
 private:
     void init_combobox();
+    void init_table();
     Ui::MainWindow *ui;
 
     bool connected=0;
     SerialHub *serialHub;
+    QList<QLabel*> testStates;
+    QList<QPushButton*> errorButtons;
 };
 
 

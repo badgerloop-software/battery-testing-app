@@ -1,4 +1,4 @@
 # battery-testing-app
-Battery testing application that team members will use to control and view the results of battery tests.
+Battery testing application that team members will use to control battery tests.
 
-requires sudo permisson
+cd into build directory and run ./BatteryTester

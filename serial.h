@@ -44,7 +44,7 @@ public slots:
     void handleErrorDecision(std::string port, int prevState, int decision);
     void startTest(std::string port, const char* batteryID, double dischargeCurrent);
 signals:
-    void batteryStatusChange();
+    void testerStateChange(int newState, std::string port);
     void testEnded(std::string port);
     void error(std::string port, QString message, int prevState);
 private:

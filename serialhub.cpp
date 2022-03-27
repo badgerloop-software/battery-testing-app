@@ -8,18 +8,18 @@ SerialHub::SerialHub() {
     for(QSerialPortInfo port: QSerialPortInfo::availablePorts()){
         //qDebug()<<port.portName();
         if(port.portName().contains("ttyUSB") || port.portName().contains("ttyACM") || port.portName().contains("cu")){
-            //qDebug()<<"contains USB or ACM";
+            qDebug()<<"contains USB or ACM"<<port.portName();
             Serial serial(("/dev/"+port.portName().toStdString()).c_str());
             serial.send("tester,\n");
             QByteArray reply = serial.read();
-            //qDebug()<<"Reply: "<<reply;
+            qDebug()<<"Reply: "<<reply;
             if(reply.contains("yes")){
                 QStringList testID=QString(reply).split(",");
                 deviceInfoList.push_back(new deviceInfo(("/dev/"+port.portName().toStdString()).c_str(),testID[1].toStdString(), "", 1.5));
                 devices.push_back(new SerialThread(("/dev/"+port.portName().toStdString()).c_str()));
 
-                QObject::connect(&*devices[devices.size()-1], &SerialThread::batteryStatusChange,
-                                 this, &SerialHub::on_batteryStatusChange);
+                QObject::connect(&*devices[devices.size()-1], &SerialThread::testerStateChange,
+                                 this, &SerialHub::on_testerStateChange);
                 QObject::connect(&*devices[devices.size()-1], &SerialThread::testEnded,
                                  this, &SerialHub::on_testEnded);
                 QObject::connect(&*devices[devices.size()-1], &SerialThread::error,
@@ -38,12 +38,14 @@ SerialHub::SerialHub() {
 }
 
 void SerialHub::startTest(const char* testerID, const char* batteryID, double current) {
+    qDebug()<<"startTest() 1 in SerialHub";
     int deviceIndex = getIndex(testerID);
 
     if(deviceIndex != -1) {
         deviceInfoList[deviceIndex]->batteryID = batteryID;
         deviceInfoList[deviceIndex]->discharge_current = current;
         deviceInfoList[deviceIndex]->running = true;
+        qDebug()<<"startTest() 2 in SerialHub";
         emit signalStartTest(deviceInfoList[deviceIndex]->devicePort, batteryID, current);
     }
 }
@@ -84,16 +86,15 @@ deviceInfo* SerialHub::getDeviceConfig(std::string testerID) {
 }
 
 /**
- * @brief SerialHub::on_batteryStatusChange Handle batteryStatusChange signal from SerialThread. Notifies MainWindow of status change
+ * @brief SerialHub::on_testerStateChange Handle testerStatusChange signal from SerialThread. Notifies MainWindow of status change
+ * @param newState The state into which the tester has transitioned
+ * @param port The port of the tester whose state has changed
  */
-void SerialHub::on_batteryStatusChange() {
-    //qDebug()<<"SerialHub: on_BatteryStatusChange() called";
-
-    for(int i = 0 ; i < devices.size() ; i ++) {
-        deviceInfoList[i]->batReady = devices[i]->batReady;
-
-        if(devices[i]->batReady){
-            //qDebug()<<i<<" is ready (batReady is true)";
+void SerialHub::on_testerStateChange(int newState, std::string port) {
+    for (int i = 0 ; i < devices.size() ; i++) {
+        if(deviceInfoList[i]->devicePort == port) {
+            deviceInfoList[i]->testerState = newState;
+            deviceInfoList[i]->batReady = newState != IDLE; // TODO Check against finish state as well once finish state is added
         }
     }
 
@@ -102,14 +103,16 @@ void SerialHub::on_batteryStatusChange() {
 
 /**
  * @brief SerialHub::on_testEnded Handle testEnded signal from SerialThread. Notifies MainWindow of status change
+ * @param port String indicating the port of the tester whose test ended
  */
 void SerialHub::on_testEnded(std::string port) {
-    for (int i = 0 ; i < devices.size() ; i++){
+    for (int i = 0 ; i < devices.size() ; i++) {
         if(deviceInfoList[i]->devicePort == port) {
             deviceInfoList[i]->running = false;
             deviceInfoList[i]->batteryID = "";
             deviceInfoList[i]->discharge_current = 1.5;
             deviceInfoList[i]->batReady = devices[i]->batReady;
+            deviceInfoList[i]->testerState = IDLE; // TODO Change to FINISH when finish state is added (to account for possible wait in firmware)
         }
     }
 
@@ -145,15 +148,11 @@ void SerialHub::on_error(std::string port, QString message, int prevState) {
                     //qDebug()<<"SerialHub: Error was from state other than idle, ready, charging, or discharging";
                     break;
             }
+            deviceInfoList[i]->errorTitle = title;
+            deviceInfoList[i]->errorMessage = message;
+            deviceInfoList[i]->error = true;
         }
     }
 
-    QMessageBox err;
-    err.setWindowTitle(title);
-    err.setText(message);
-    err.setStandardButtons(QMessageBox::Cancel|QMessageBox::Retry);
-
-    //qDebug()<<"error state is running";
-
-    emit errorDecisionMade(port, prevState, err.exec());
+    emit statusChange();
 }

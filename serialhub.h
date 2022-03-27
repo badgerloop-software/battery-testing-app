@@ -30,6 +30,10 @@ public:
     double discharge_current;
     bool running=false;
     bool batReady=false;
+    bool error=false;
+    int testerState = IDLE;
+    QString errorMessage;
+    QString errorTitle;
 };
 
 class SerialHub : public QObject{
@@ -40,7 +44,7 @@ public:
     deviceInfo* getDeviceConfig(std::string testerID);
     std::vector<deviceInfo*> getDevices(){return deviceInfoList;};
 public slots:
-    void on_batteryStatusChange();
+    void on_testerStateChange(int newState, std::string port);
     void on_testEnded(std::string port);
     void on_error(std::string port, QString message, int prevState);
 signals:
