@@ -30,6 +30,9 @@ SerialHub::SerialHub() {
                                  &*devices[devices.size()-1], &SerialThread::startTest);
                 QObject::connect(&*devices[devices.size()-1], &SerialThread::finished,
                                  &*devices[devices.size()-1], &SerialThread::deleteLater);
+                QObject::connect(&*devices[devices.size()-1], &SerialThread::voltageChange,
+                                 this, &SerialHub::on_voltageChange);
+
 
                 devices[devices.size()-1]->start();
             }
@@ -97,6 +100,10 @@ void SerialHub::on_testerStateChange(int newState, std::string port) {
             deviceInfoList[i]->batReady = newState != IDLE; // TODO Check against finish state as well once finish state is added
         }
     }
+
+    if(newState == READY) { // TODO  Tester Ready Mouse
+        emit testerMovedToReady(port); // TODO  Tester Ready Mouse
+    } // TODO  Tester Ready Mouse
 
     emit statusChange();
 }

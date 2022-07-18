@@ -6,7 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
+    ui->setupUi(this); // TODO Added this
 
     connect(ui->comboBox, SIGNAL(currentIndexChanged(int)),
                 this, SLOT(indexChanged(int)));
@@ -15,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent)
     init_combobox();
     init_table();
     connect(serialHub,&SerialHub::statusChange,this,&MainWindow::on_statusChange);
+    connect(serialHub, &SerialHub::propagateVoltageChange, this, &MainWindow::on_voltageChange); // TODO
+    connect(serialHub, &SerialHub::testerMovedToReady, this, &MainWindow::on_movedToReady); // TODO  Tester Ready Mouse
 }
 
 MainWindow::~MainWindow()
@@ -34,12 +36,16 @@ void MainWindow::init_table() {
     ui->testerTable->insertColumn(0);
     ui->testerTable->insertColumn(1);
     ui->testerTable->insertColumn(2);
+    ui->testerTable->insertColumn(3); // TODO
 
-    QStringList headers = { "Teseter ID", "Test State", "Error" };
+    QStringList headers = { "Tester ID", "Test State", "Voltage", "Error" }; // TODO
     ui->testerTable->setHorizontalHeaderLabels(headers);
 
     for(int r=0; r < devices.size(); r++) {
         testStates.push_back(new QLabel("Idle"));
+        //voltages.push_back(new QString()); // TODO
+        //voltageLabels.push_back(new QLabel(*voltages[r])); // TODO
+        voltageLabels.push_back(new QLabel(""));
         errorButtons.push_back(new QPushButton());
         errorButtons[r]->setCheckable(true);
         errorButtons[r]->setStyleSheet("QPushButton { background-color : white } QPushButton:pressed { background-color : white } ");
@@ -49,9 +55,21 @@ void MainWindow::init_table() {
 
         ui->testerTable->setCellWidget(r, 0, new QLabel(QString::fromStdString(devices[r]->testerID)));
         ui->testerTable->setCellWidget(r, 1, testStates[r]);
-        ui->testerTable->setCellWidget(r, 2, errorButtons[r]);
+        ui->testerTable->setCellWidget(r, 2, voltageLabels[r]); // TODO
+        ui->testerTable->setCellWidget(r, 3, errorButtons[r]); // TODO changed index
     }
 
+}
+
+// TODO
+void MainWindow::on_voltageChange(std::string port, QString voltage) {
+    std::vector<deviceInfo*> devices = serialHub->getDevices();
+
+    for(int i=0; i < ui->testerTable->rowCount(); i++) {
+        if(devices[i]->devicePort == port) {
+            voltageLabels[i]->setText(voltage);
+        }
+    }
 }
 
 void MainWindow::on_errorButtonPressed() {
@@ -76,7 +94,7 @@ void MainWindow::on_errorButtonPressed() {
                 if(decision != QMessageBox::Cancel) {
                     devices[i]->error = false;
 
-                    ui->testerTable->cellWidget(i, 2)->setStyleSheet("QPushButton { background-color : white } QPushButton:pressed { background-color : white } ");
+                    ui->testerTable->cellWidget(i, 3)->setStyleSheet("QPushButton { background-color : white } QPushButton:pressed { background-color : white } "); // TODO
 
                     deviceInfo *device = serialHub->getDeviceConfig(ui->comboBox->currentText().toStdString().c_str());
                     if(device == devices[i]) {
@@ -201,7 +219,7 @@ void MainWindow::on_statusChange() {
         }
 
         if(devices[r]->error) {
-            ui->testerTable->cellWidget(r, 2)->setStyleSheet("QPushButton { background-color : red } QPushButton:pressed { background-color : red } ");
+            ui->testerTable->cellWidget(r, 3)->setStyleSheet("QPushButton { background-color : red } QPushButton:pressed { background-color : red } "); // TODO
         }
     }
 
@@ -222,3 +240,12 @@ void MainWindow::on_statusChange() {
          ui->BatteryStat->setStyleSheet("QLabel { background-color : red; }");
     }
 }
+
+ // TODO  Tester Ready Mouse
+void MainWindow::on_movedToReady(std::string port) { // TODO  Tester Ready Mouse
+    deviceInfo *device = serialHub->getDeviceConfig(ui->comboBox->currentText().toStdString().c_str()); // TODO  Tester Ready Mouse
+    if(device->devicePort == port) { // TODO  Tester Ready Mouse
+        ui->batteryID->setFocus(Qt::OtherFocusReason); // TODO  Tester Ready Mouse
+        //qDebug() << "set focus " << QString::fromStdString(port); // TODO  Tester Ready Mouse
+    } // TODO  Tester Ready Mouse
+} // TODO  Tester Ready Mouse

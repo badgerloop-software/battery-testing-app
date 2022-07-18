@@ -26,6 +26,8 @@ public slots:
     void indexChanged(int index);
     void on_statusChange();
     void on_errorButtonPressed();
+    void on_voltageChange(std::string port, QString voltage); // TODO
+    void on_movedToReady(std::string port); // TODO  Tester Ready Mouse
 private:
     void init_combobox();
     void init_table();
@@ -33,7 +35,9 @@ private:
 
     bool connected=0;
     SerialHub *serialHub;
+    //QList<QString*> voltages; // TODO
     QList<QLabel*> testStates;
+    QList<QLabel*> voltageLabels; // TODO
     QList<QPushButton*> errorButtons;
 };
 

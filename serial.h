@@ -47,6 +47,7 @@ signals:
     void testerStateChange(int newState, std::string port);
     void testEnded(std::string port);
     void error(std::string port, QString message, int prevState);
+    void voltageChange(std::string port, QString voltage); // TODO
 private:
     int idleState();
     int readyState();

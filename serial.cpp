@@ -161,7 +161,7 @@ int SerialThread::chargeState() {
     if(receive.contains("discharge")) {
         qDebug()<<"discharge: "<<receive;
 
-        csv->write("volts,therm1,therm2,therm3\n"); // Add headers to csv file
+        csv->write("Voltage (V),Current (mA),Shunt Voltage (mV),Therm 1 (C),Therm 2 (C),Therm 3 (C)\n"); // Add headers to csv file
 
         emit testerStateChange(DISCHARGE, portName);
 
@@ -171,8 +171,14 @@ int SerialThread::chargeState() {
 
         emit error(portName, receive.toStdString().c_str(), currState);
         return ERROR;
+    } else if(!receive.contains("charge") && !receive.isEmpty()) {
+        emit voltageChange(portName, receive.split('\n')[0]);//.split(',')[0]);//receiveStr.substr(0, receiveStr.find(",") + 1)); // TODO
     }
+    // TODO emit voltageChange(portName, receive.split(',')[0]);
 
+    //QString receiveStr = QString::fromStdString(receive.toStdString()); // TODO
+    //std::string receiveStr = receive.toStdString(); // TODO
+    //if(receive.contains(",")) TODO
     return CHARGE;
 }
 
@@ -192,12 +198,21 @@ int SerialThread::dischargeState() {
 
         // TODO Remove emit testerStateChange(IDLE, portName); // TODO change to FINISH when finish state is added (to account for possible wait in firmware)
 
+        emit voltageChange(portName, ""); // TODO
         emit testEnded(portName);
         return IDLE;
     } else {
         if(!receive.contains("discharge")) {
             csv->write(receive);
             qDebug()<<receive;
+
+            //QString receiveStr = QString::fromStdString(receive.toStdString()); // TODO
+            //std::string receiveStr = receive.toStdString(); // TODO
+            if(receive.contains(",")) {
+                if(!receive.contains('\n')) {
+                    emit voltageChange(portName, receive.split(',')[0]);//receiveStr.substr(0, receiveStr.find(",") + 1)); // TODO
+                }
+            }
         }
         return DISCHARGE;
     }
@@ -247,9 +262,12 @@ void SerialThread::handleErrorDecision(std::string port, int prevState, int deci
 
                     csv->remove(fileName.c_str());
                     delete csv;
+
+                    emit voltageChange(portName, ""); // TODO Move outside of prevState != READY (to directly above testEnded(portName)) ???
                 }
 
                 batReady = 0;
+
                 emit testEnded(portName);
             }
             qDebug()<<"SerialThread abort test (resume: idle)";

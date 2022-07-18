@@ -47,10 +47,13 @@ public slots:
     void on_testerStateChange(int newState, std::string port);
     void on_testEnded(std::string port);
     void on_error(std::string port, QString message, int prevState);
+    void on_voltageChange(std::string port, QString voltage) { emit propagateVoltageChange(port, voltage); }; // TODO
 signals:
     void statusChange();
     void signalStartTest(std::string port, const char* batteryID, double current);
     void errorDecisionMade(std::string port, int prevState, int decision);
+    void propagateVoltageChange(std::string port, QString voltage); // TODO
+    void testerMovedToReady(std::string port); // TODO Tester Ready Mouse
 private:
     int getIndex(std::string testerID);
     std::vector<SerialThread*> devices;
